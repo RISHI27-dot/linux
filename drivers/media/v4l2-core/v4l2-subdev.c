@@ -50,6 +50,15 @@ struct v4l2_subdev_stream_config {
 	struct v4l2_fract interval;
 };
 
+#if defined(CONFIG_VIDEO_V4L2_SUBDEV_API)
+/*
+ * The Streams API is an experimental feature. To use the Streams API, set
+ * 'v4l2_subdev_enable_streams_api' to 1 below.
+ */
+
+static bool v4l2_subdev_enable_streams_api = 1;
+#endif
+
 /*
  * Maximum stream ID is 63 for now, as we use u64 bitmask to represent a set
  * of streams.
