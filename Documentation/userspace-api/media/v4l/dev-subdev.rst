@@ -717,3 +717,5 @@ To configure this pipeline, the userspace must take the following steps:
    :ref:`V4L2_CID_METADATA_LAYOUT <image_source_control_metadata_layout>`
    controls are present on the source sub-device to obtain the pixel data color
    pattern and metadata layout.
+
+.. include:: subdev-config-model.rst
