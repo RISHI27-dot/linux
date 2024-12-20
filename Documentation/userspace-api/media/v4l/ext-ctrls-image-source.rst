@@ -92,3 +92,42 @@ Image Source Control IDs
     representing a gain of exactly 1.0. For example, if this default value
     is reported as being (say) 128, then a value of 192 would represent
     a gain of exactly 1.5.
+
+``V4L2_CID_COLOR_PATTERN (integer)``
+    This control determines the color components and native pixel order in the
+    sensor's CFA (Color Filter Array) when used in conjunction with
+    :ref:`generic raw mbus codes MEDIA_BUS_FMT_RAW_x (where 'x' is the bit
+    depth) <v4l2-mbus-pixelcode-generic-raw>` pixelcodes. The native pixel
+    order is constant for a given device, it is not affected by cropping or
+    flipping.
+
+    This control may only be used on V4L2 sub-devices.
+
+    This is a read-only control.
+
+    Available patterns:
+
+.. flat-table:: V4L2 color patterns
+    :header-rows:  1
+    :stub-columns: 0
+    :widths:       1 2 1
+
+    * - Macro name
+      - Synopsis
+      - Value
+    * - V4L2_COLOR_PATTERN_GRBG
+      - Raw Bayer, with alternating lines beginning with green, red pixels and
+        blue, green pixels.
+      - 0
+    * - V4L2_COLOR_PATTERN_RGGB
+      - Raw Bayer, with alternating lines beginning with red, green pixels and
+        green, blue pixels.
+      - 1
+    * - V4L2_COLOR_PATTERN_BGGR
+      - Raw Bayer, with alternating lines beginning with blue, green pixels and
+        green, red pixels.
+      - 2
+    * - V4L2_COLOR_PATTERN_GBRG
+      - Raw Bayer, with alternating lines beginning with green, blue pixels and
+        red, green pixels.
+      - 3
