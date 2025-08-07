@@ -190,5 +190,9 @@
 #define MEDIA_BUS_FMT_RAW_10			0xa002
 #define MEDIA_BUS_FMT_RAW_12			0xa003
 #define MEDIA_BUS_FMT_RAW_14			0xa004
+#define MEDIA_BUS_FMT_RAW_16			0xa005
+#define MEDIA_BUS_FMT_RAW_20			0xa006
+#define MEDIA_BUS_FMT_RAW_24			0xa007
+#define MEDIA_BUS_FMT_RAW_28			0xa008
 
 #endif /* __LINUX_MEDIA_BUS_FORMAT_H */
