@@ -846,3 +846,5 @@ stream while it may be possible to enable and disable the embedded data stream.
 
 The embedded data format does not need to be configured on the sensor's pads as
 the format is dictated by the pixel data format in this case.
+
+.. include:: subdev-config-model.rst
