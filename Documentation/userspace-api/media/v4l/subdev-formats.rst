@@ -3867,6 +3867,9 @@ however the bit depth is still specific to the format.
 
 The colour components and the native pixel order are determined by the
 :ref:`V4L2_CID_COLOR_PATTERN <image-source-control-color-pattern>` control.
+Whether or not flipping controls (``V4L2_CID_HFLIP`` and ``V4L2_CID_VFLIP``)
+affect the pattern is conveyed via the :ref:`V4L2_CID_COLOR_PATTERN_FLIP
+<image-source-control-color-pattern-flip>` control.
 
 .. tabularcolumns:: |p{2.0cm}|p{4.0cm}|p{11.3cm}|
 
