@@ -155,9 +155,18 @@ appropriately. The generic error codes are described at the
 :ref:`Generic Error Codes <gen-errors>` chapter.
 
 EINVAL
+
    The sink or source pad identifiers reference a non-existing pad or reference
    pads of different types (ie. the sink_pad identifiers refers to a source
-   pad), or the ``which`` field has an unsupported value.
+   pad), the ``which`` field has an unsupported value, or, for
+   ``VIDIOC_SUBDEV_S_ROUTING``, the num_routes field value is larger than that
+   of the len_routes field.
+
+ENXIO
+   No such link can be created or such link state change can be made. Either the
+   sink or source (pad, stream) pair or the combination of the sink and source
+   is not supported by the hardware, or no multiple routes from or to the same
+   (pad, stream) pair are supported.
 
 E2BIG
    The application provided ``num_routes`` for ``VIDIOC_SUBDEV_S_ROUTING`` is
