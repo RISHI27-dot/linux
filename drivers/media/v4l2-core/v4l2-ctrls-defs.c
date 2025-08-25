@@ -1159,6 +1159,7 @@ const char *v4l2_ctrl_get_name(u32 id)
 	case V4L2_CID_NOTIFY_GAINS:		return "Notify Gains";
 	case V4L2_CID_IR_ANALOGUE_GAIN:		return "Analogue Gain, IR";
 	case V4L2_CID_COLOR_PATTERN:		return "Color Pattern";
+	case V4L2_CID_COLOR_PATTERN_FLIP:	return "Color Pattern Flip";
 
 	/* Image processing controls */
 	/* Keep the order of the 'case's the same as in v4l2-controls.h! */
@@ -1489,6 +1490,7 @@ void v4l2_ctrl_fill(u32 id, const char **name, enum v4l2_ctrl_type *type,
 		*type = V4L2_CTRL_TYPE_BITMASK;
 		break;
 	case V4L2_CID_CONFIG_MODEL:
+	case V4L2_CID_COLOR_PATTERN_FLIP:
 		*flags |= V4L2_CTRL_FLAG_READ_ONLY;
 		*type = V4L2_CTRL_TYPE_BITMASK;
 		break;
