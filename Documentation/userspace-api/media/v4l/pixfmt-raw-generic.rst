@@ -13,7 +13,10 @@ Description
 
 These generic raw image data formats define the memory layout of the data
 without defining the order of the pixels in the format or even the CFA (Colour
-Filter Array) itself. See also :ref:`source routes <subdev-routing>`.
+Filter Array) itself. These formats may only be used with a Media Controller
+pipeline where the more specific format is reported by the
+:ref:`V4L2_CID_COLOR_PATTERN <image-source-control-color-pattern>` control on
+the source sub-device. See also :ref:`source routes <subdev-routing>`.
 
 .. _v4l2-pix-fmt-raw-8:
 
