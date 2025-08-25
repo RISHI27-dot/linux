@@ -134,6 +134,8 @@ Image Source Control IDs
         red, green pixels.
       - 3
 
+.. _image-source-control-color-pattern-flip:
+
 ``V4L2_CID_COLOR_PATTERN_FLIP (bitmask)``
     Whether the horizontal or vertical flipping controls (V4L2_CID_HFLIP and
     V4L2_CID_VFLIP) have an effect on the pixel order of the output color
