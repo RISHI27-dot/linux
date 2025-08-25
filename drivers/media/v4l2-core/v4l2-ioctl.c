@@ -1442,6 +1442,11 @@ static void v4l_fill_fmtdesc(struct v4l2_fmtdesc *fmt)
 	case V4L2_PIX_FMT_SIGGR10:	descr = "10-bit Bayer IrGIrG/GRGB"; break;
 	case V4L2_PIX_FMT_SGIBG10:	descr = "10-bit Bayer GIrGIr/BGRG"; break;
 	case V4L2_PIX_FMT_SIGGB10:	descr = "10-bit Bayer IrGIrG/GBGR"; break;
+	case V4L2_PIX_FMT_RAW_8:	descr = "8-bit Raw"; break;
+	case V4L2_PIX_FMT_RAW_CSI2_10:	descr = "10-bit Raw, CSI-2 Packed"; break;
+	case V4L2_PIX_FMT_RAW_CSI2_12:	descr = "12-bit Raw, CSI-2 Packed"; break;
+	case V4L2_PIX_FMT_RAW_CSI2_14:	descr = "14-bit Raw, CSI-2 Packed"; break;
+	case V4L2_PIX_FMT_RAW_CRU20:	descr = "14-bit Raw CRU Packed"; break;
 	case V4L2_PIX_FMT_SN9C20X_I420:	descr = "GSPCA SN9C20X I420"; break;
 	case V4L2_PIX_FMT_SPCA501:	descr = "GSPCA SPCA501"; break;
 	case V4L2_PIX_FMT_SPCA505:	descr = "GSPCA SPCA505"; break;
