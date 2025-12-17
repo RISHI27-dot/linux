@@ -287,7 +287,7 @@ static int video_start_streaming(struct vb2_queue *q, unsigned int count)
 
 	video->ops->start_streaming(video);
 
-	ret = v4l2_subdev_call(video->source_subdev, video, s_stream, true);
+	ret = v4l2_subdev_enable_streams(video->source_subdev, 1, BIT(0));
 	if (ret) {
 		dev_err(video->stfcamss->dev, "stream on failed\n");
 		goto err_pm_put;
@@ -311,7 +311,7 @@ static void video_stop_streaming(struct vb2_queue *q)
 
 	video->ops->stop_streaming(video);
 
-	v4l2_subdev_call(video->source_subdev, video, s_stream, false);
+	v4l2_subdev_disable_streams(video->source_subdev, 1, BIT(0));
 
 	pm_runtime_put(video->stfcamss->dev);
 

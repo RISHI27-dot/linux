@@ -55,27 +55,43 @@ int stf_isp_init(struct stfcamss *stfcamss)
 	return 0;
 }
 
-static int isp_set_stream(struct v4l2_subdev *sd, int enable)
+static int isp_sd_enable_stream(struct v4l2_subdev *sd,
+				struct v4l2_subdev_state *state,
+				u32 pad, u64 streams_mask)
 {
 	struct stf_isp_dev *isp_dev = v4l2_get_subdevdata(sd);
 	struct v4l2_subdev_state *sd_state;
 	struct v4l2_mbus_framefmt *fmt;
 	struct v4l2_rect *crop;
+	int ret;
 
-	sd_state = v4l2_subdev_lock_and_get_active_state(sd);
+	sd_state = v4l2_subdev_get_locked_active_state(sd);
 	fmt = v4l2_subdev_state_get_format(sd_state, STF_ISP_PAD_SINK);
 	crop = v4l2_subdev_state_get_crop(sd_state, STF_ISP_PAD_SRC);
 
-	if (enable) {
-		stf_isp_reset(isp_dev);
-		stf_isp_init_cfg(isp_dev);
-		stf_isp_settings(isp_dev, crop, fmt->code);
-		stf_isp_stream_set(isp_dev);
-	}
+	stf_isp_reset(isp_dev);
+	stf_isp_init_cfg(isp_dev);
+	stf_isp_settings(isp_dev, crop, fmt->code);
+	stf_isp_stream_set(isp_dev);
 
-	v4l2_subdev_call(isp_dev->source_subdev, video, s_stream, enable);
+	ret = v4l2_subdev_enable_streams(isp_dev->source_subdev, 1, BIT(0));
+	if (ret)
+		return ret;
 
-	v4l2_subdev_unlock_state(sd_state);
+	return 0;
+}
+
+static int isp_sd_disable_stream(struct v4l2_subdev *sd,
+				 struct v4l2_subdev_state *state,
+				 u32 pad, u64 streams_mask)
+{
+	struct stf_isp_dev *isp_dev = v4l2_get_subdevdata(sd);
+	int ret;
+
+	ret = v4l2_subdev_disable_streams(isp_dev->source_subdev, 1, BIT(0));
+	if (ret)
+		return ret;
+
 	return 0;
 }
 
@@ -300,20 +316,17 @@ static int isp_init_formats(struct v4l2_subdev *sd,
 	return isp_set_format(sd, sd_state, &format);
 }
 
-static const struct v4l2_subdev_video_ops isp_video_ops = {
-	.s_stream = isp_set_stream,
-};
-
 static const struct v4l2_subdev_pad_ops isp_pad_ops = {
 	.enum_mbus_code = isp_enum_mbus_code,
 	.get_fmt = v4l2_subdev_get_fmt,
 	.set_fmt = isp_set_format,
 	.get_selection = isp_get_selection,
 	.set_selection = isp_set_selection,
+	.enable_streams = isp_sd_enable_stream,
+	.disable_streams = isp_sd_disable_stream,
 };
 
 static const struct v4l2_subdev_ops isp_v4l2_ops = {
-	.video = &isp_video_ops,
 	.pad = &isp_pad_ops,
 };
 
