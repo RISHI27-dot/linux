@@ -279,6 +279,7 @@ static int csi2rx_configure_ext_dphy(struct csi2rx_priv *csi2rx)
 	struct v4l2_mbus_framefmt *framefmt;
 	struct v4l2_subdev_state *state;
 	const struct csi2rx_fmt *fmt;
+	struct v4l2_subdev_route *route;
 	int source_pad = csi2rx->source_pad;
 	struct media_pad *pad = &csi2rx->source_subdev->entity.pads[source_pad];
 	s64 link_freq;
@@ -296,7 +297,9 @@ static int csi2rx_configure_ext_dphy(struct csi2rx_priv *csi2rx)
 	if (state->routing.num_routes > 1) {
 		bpp = 0;
 	} else {
-		framefmt = v4l2_subdev_state_get_format(state, CSI2RX_PAD_SINK, 0);
+		route = &state->routing.routes[0];
+		framefmt = v4l2_subdev_state_get_format(state, CSI2RX_PAD_SINK,
+							route->sink_stream);
 		if (!framefmt) {
 			dev_err(csi2rx->dev, "Did not find active sink format\n");
 			return -EINVAL;
@@ -706,25 +709,44 @@ int cdns_csi2rx_negotiate_ppc(struct v4l2_subdev *subdev, unsigned int pad,
 {
 	struct csi2rx_priv *csi2rx = v4l2_subdev_to_csi2rx(subdev);
 	const struct csi2rx_fmt *csi_fmt;
+	struct v4l2_subdev_route *route;
 	struct v4l2_subdev_state *state;
 	struct v4l2_mbus_framefmt *fmt;
+	int ret = 0;
 
 	if (!ppc || pad < CSI2RX_PAD_SOURCE_STREAM0 || pad >= CSI2RX_PAD_MAX)
 		return -EINVAL;
 
 	state = v4l2_subdev_lock_and_get_active_state(subdev);
-	fmt = v4l2_subdev_state_get_format(state, pad);
-	csi_fmt = csi2rx_get_fmt_by_code(fmt->code);
+	/* Check all streams on requested pad */
+	for_each_active_route(&state->routing, route) {
+		if (route->source_pad != pad)
+			continue;
 
-	/* Reduce requested PPC if it is too high */
-	*ppc = min(*ppc, csi_fmt->max_pixels);
+		fmt = v4l2_subdev_state_get_format(state, route->source_pad,
+						   route->source_stream);
+		if (!fmt) {
+			ret = -EPIPE;
+			*ppc = 1;
+			break;
+		}
 
+		csi_fmt = csi2rx_get_fmt_by_code(fmt->code);
+		if (!csi_fmt) {
+			ret = -EINVAL;
+			*ppc = 1;
+			break;
+		}
+
+		/* Reduce requested PPC if it is too high for this stream */
+		*ppc = min(*ppc, csi_fmt->max_pixels);
+	}
 	v4l2_subdev_unlock_state(state);
 
 	csi2rx->num_pixels[pad - CSI2RX_PAD_SOURCE_STREAM0] =
 		CSI2RX_STREAM_CFG_NUM_PIXELS(*ppc);
 
-	return 0;
+	return ret;
 }
 EXPORT_SYMBOL_FOR_MODULES(cdns_csi2rx_negotiate_ppc, "j721e-csi2rx");
 
