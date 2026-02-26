@@ -67,6 +67,7 @@ dtb-$(CONFIG_ARCH_K3) += k3-am6254atl-sk.dtb
 
 # Boards with AM62Ax SoC
 dtb-$(CONFIG_ARCH_K3) += k3-am62a7-sk.dtb
+dtb-$(CONFIG_ARCH_K3) += k3-am62a7-sk-fusion-2.dtbo
 dtb-$(CONFIG_ARCH_K3) += k3-am62a7-sk-fusion.dtbo
 dtb-$(CONFIG_ARCH_K3) += k3-am62a7-phyboard-lyra-rdk.dtb
 
@@ -427,6 +428,7 @@ DTC_FLAGS_k3-am62-lp-sk += -@
 DTC_FLAGS_k3-am62x-sk-csi2-v3link-fusion += -@
 DTC_FLAGS_k3-am62a7-sk += -@
 DTC_FLAGS_k3-am62a7-sk-fusion += -@
+DTC_FLAGS_k3-am62a7-sk-fusion-2 += -@
 DTC_FLAGS_k3-am62p5-sk += -@
 DTC_FLAGS_k3-am642-evm += -@
 DTC_FLAGS_k3-am642-phyboard-electra-rdk += -@
