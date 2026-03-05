@@ -26,6 +26,7 @@
  * - i2c-atr could be made embeddable instead of allocatable.
  */
 
+#include <linux/bitfield.h>
 #include <linux/bitops.h>
 #include <linux/cleanup.h>
 #include <linux/clk.h>
@@ -76,6 +77,8 @@
 
 #define UB960_NUM_BC_GPIOS		4
 
+#define UB960_CSI_TX0			BIT(4)
+
 /*
  * Register map
  *
@@ -114,6 +117,7 @@
 #define UB960_SR_SCL_HIGH_TIME			0x0a
 #define UB960_SR_SCL_LOW_TIME			0x0b
 #define UB960_SR_RX_PORT_CTL			0x0c
+#define UB960_SR_RX_PORT_CTL_BCC_MAP		GENMASK(7, 4)
 #define UB960_SR_IO_CTL				0x0d
 #define UB960_SR_GPIO_PIN_STS			0x0e
 #define UB960_SR_GPIO_INPUT_CTL			0x0f
@@ -588,6 +592,9 @@ struct ub960_data {
 
 	u32 tx_data_rate;		/* Nominal data rate (Gb/s) */
 	s64 tx_link_freq[1];
+
+	u8 rx_mask;
+	u8 tx_mask;
 
 	struct i2c_atr *atr;
 
@@ -2556,7 +2563,18 @@ static int ub960_init_rx_ports_ub960(struct ub960_data *priv)
 	struct device *dev = &priv->client->dev;
 	unsigned int port_lock_mask;
 	unsigned int port_mask;
-	int ret;
+	u8 enabled_rxports_mask;
+	u8 enabled_rxports;
+	int ret = 0;
+
+	/* Configure I2C interface for RX ports */
+	enabled_rxports_mask = FIELD_PREP(UB960_SR_RX_PORT_CTL_BCC_MAP, priv->rx_mask);
+	enabled_rxports = (priv->tx_mask & UB960_CSI_TX0)  ? 0x00 : enabled_rxports_mask;
+
+	ret = ub960_update_bits(priv, UB960_SR_RX_PORT_CTL, enabled_rxports_mask,
+				enabled_rxports, &ret);
+	if (ret)
+		return ret;
 
 	for_each_active_rxport(priv, it) {
 		ret = ub960_init_rx_port_ub960(priv, it.rxport);
@@ -4807,6 +4825,30 @@ static int ub960_parse_dt_txports(struct ub960_data *priv)
 	return 0;
 }
 
+static void ub960_parse_active_ports(struct ub960_data *priv)
+{
+	struct device *dev = &priv->client->dev;
+	int nport;
+
+	priv->rx_mask = 0;
+	priv->tx_mask = 0;
+
+	for (nport = 0; nport < priv->hw_data->num_rxports + priv->hw_data->num_txports; nport++) {
+		struct fwnode_handle *ep_fwnode;
+
+		ep_fwnode = fwnode_graph_get_endpoint_by_id(dev_fwnode(dev), nport, 0, 0);
+		if (!ep_fwnode)
+			continue;
+
+		if (nport < priv->hw_data->num_rxports)
+			priv->rx_mask |= BIT(nport);
+		else
+			priv->tx_mask |= BIT(nport);
+
+		fwnode_handle_put(ep_fwnode);
+	}
+}
+
 static int ub960_parse_dt(struct ub960_data *priv)
 {
 	int ret;
@@ -5179,6 +5221,8 @@ static int ub960_probe(struct i2c_client *client)
 	ret = ub960_enable_core_hw(priv);
 	if (ret)
 		goto err_mutex_destroy;
+
+	ub960_parse_active_ports(priv);
 
 	ret = ub960_parse_dt(priv);
 	if (ret)
