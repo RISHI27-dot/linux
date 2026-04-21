@@ -244,12 +244,39 @@ static const struct reg_sequence ov2312_1600x1300_60fps_AB[] = {
 	{0x3885, 0x07},
 	{0x382b, 0x3a},
 	{0x3670, 0x68},
+
+	/* Start : Embedded data settings */
+	{0x3016, 0xF1}, /* CLK: 0xF1 before programming ED according to ED example*/
+	{0x0100, 0x01}, /* MODE_SELECT: 0x01 to go into streaming mode*/
+	{0x4814, 0x6B}, /* DT: 0x6B according to ED example, ED will be sent with a DT = 0x2B (RAW10)*/
+	{0x3218, 0x32}, /* ED line ctrl: 0x32 according to ED example*/
+	{0x3216, 0x01}, /* CLK: 0xF1 to start programming ED*/
+	{0x3208, 0x04}, /* Group Access: Start ED recording i.e set Group = 4 r[7:4] = 0*/
+
+	/****************************** Registers sent in ED line ***********************************/
+	{0x4813, 0x01}, /* VC: 0x1 for VC = 1*/
+	{0x321a, 0x01}, /* Active Group */
+	{0x3920, 0x01}, /* Strobe pattern: IR LED? */
+	{0x3501, 0x02}, /* EXPO: Exposure HI and Exposure LO */
+	{0x3508, 0x02}, /* Gain: Gain HI and Gain LO */
+	/*******************************************************************************************/
+
+	{0x3208, 0x14}, /* Group Access: End ED recording i.e set Group = 4 r[7:4] = 1*/
+	{0x3662, 0x65}, /* 0x65 to set to RAW10 according to ED example*/
+	{0x366F, 0x1A}, /* 0x1A to set to RAW10 according to ED example, 0x366F[6] = 0 to print msb of ED*/
+	{0x3674, 0x11}, /* 0x11 to set to RAW10 according to ED example*/
+	{0x3016, 0xF0}, /* CLK: 0xF0 before programming ED according to ED example*/
+	/* End : Embedded data settings */
+
 	{0x301C, 0xF0},/* AB mode - Group auto switch example setting */
 	{0x3209, 0x01},/* Stay in Group A for 1 Frame */
 	{0x320A, 0x01},/* Stay in Group B for 1 Frame */
 	{0x320B, 0x00},
 	{0x320C, 0x00},
-	{0x3208, 0x01},/* Group A (IR Dominant VC0) */
+
+	// {0x3208, 0x01},/* Group A (IR Dominant VC0) */
+	{0x3208, 0x00},/* Group A (IR Dominant VC0) */
+
 	{OV2312_AEC_PK_EXPO_HI, (OV2312_IR_EXPOSURE >> 8) & 0xff},
 	{OV2312_AEC_PK_EXPO_LO, OV2312_IR_EXPOSURE & 0xff},
 	{OV2312_AEC_PK_AGAIN_HI, 0x01},
@@ -261,7 +288,11 @@ static const struct reg_sequence ov2312_1600x1300_60fps_AB[] = {
 	{0x3928, OV2312_IR_STROBE & 0xff},
 	{0x3929, (OV2312_IR_STROBE_START >> 8) & 0xff},
 	{0x392a, OV2312_IR_STROBE_START & 0xff},
-	{0x4813, 0x01},/* VC=1. This register takes effect from next frame */
-	{0x3208, 0x11},
+
+	// {0x4813, 0x01},/* VC=1. This register takes effect from next frame */
+	{0x4813, 0x00},/* VC=0. This register takes effect from next frame */
+
+	// {0x3208, 0x11},
+	{0x3208, 0x10},
 
 };
