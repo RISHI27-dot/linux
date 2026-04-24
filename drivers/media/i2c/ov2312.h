@@ -270,8 +270,12 @@ static const struct reg_sequence ov2312_1600x1300_60fps_AB[] = {
 	/* End : Embedded data settings */
 
 	{0x301C, 0xF0},/* AB mode - Group auto switch example setting */
+
 	{0x3209, 0x01},/* Stay in Group A for 1 Frame */
+	// {0x3209, 0x03},/* Stay in Group A for 3 Frame */
 	{0x320A, 0x01},/* Stay in Group B for 1 Frame */
+	// {0x320A, 0x03},/* Stay in Group B for 3 Frame */
+
 	{0x320B, 0x00},
 	{0x320C, 0x00},
 
