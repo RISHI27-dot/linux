@@ -360,7 +360,10 @@ free_carveout_dma_heap:
 #include <linux/of_reserved_mem.h>
 
 #define MAX_HEAP_AREAS 7
-static struct reserved_mem heap_areas[MAX_HEAP_AREAS];
+static struct {
+	struct reserved_mem rmem;
+	unsigned long fdt_node;
+} heap_areas[MAX_HEAP_AREAS];
 static size_t heap_area_count;
 
 static int __init carveout_dma_heap_init_areas(void)
@@ -368,8 +371,8 @@ static int __init carveout_dma_heap_init_areas(void)
 	int i;
 
 	for (i = 0; i < heap_area_count; i++) {
-		struct reserved_mem *rmem = &heap_areas[i];
-		bool cached = !of_get_flat_dt_prop(rmem->fdt_node, "no-map", NULL);
+		struct reserved_mem *rmem = &heap_areas[i].rmem;
+		bool cached = !of_get_flat_dt_prop(heap_areas[i].fdt_node, "no-map", NULL);
 		int ret = carveout_dma_heap_export(rmem->base, rmem->size, rmem->name, cached);
 		if (ret) {
 			pr_err("Carveout Heap: could not export as DMA-Heap\n");
@@ -381,7 +384,8 @@ static int __init carveout_dma_heap_init_areas(void)
 }
 fs_initcall(carveout_dma_heap_init_areas);
 
-static int __init rmem_dma_heap_carveout_setup(struct reserved_mem *rmem)
+static int __init rmem_dma_heap_carveout_setup(unsigned long fdt_node,
+					       struct reserved_mem *rmem)
 {
 	phys_addr_t align = PAGE_SIZE;
 	phys_addr_t mask = align - 1;
@@ -401,11 +405,16 @@ static int __init rmem_dma_heap_carveout_setup(struct reserved_mem *rmem)
 	 * Each reserved area must be initialized later, when more kernel
 	 * subsystems (like slab allocator) are available.
 	 */
-	heap_areas[heap_area_count] = *rmem;
+	heap_areas[heap_area_count].rmem = *rmem;
+	heap_areas[heap_area_count].fdt_node = fdt_node;
 	heap_area_count++;
 
 	return 0;
 }
-RESERVEDMEM_OF_DECLARE(dma_heap_carveout, "dma-heap-carveout", rmem_dma_heap_carveout_setup);
+
+static const struct reserved_mem_ops dma_heap_carveout_ops __initconst = {
+	.node_init = rmem_dma_heap_carveout_setup,
+};
+RESERVEDMEM_OF_DECLARE(dma_heap_carveout, "dma-heap-carveout", &dma_heap_carveout_ops);
 
 #endif
