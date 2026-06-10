@@ -1058,8 +1058,8 @@ static int imx219_set_pad_format(struct v4l2_subdev *sd,
 	 * Use binning to maximize the crop rectangle size, and centre it in the
 	 * sensor.
 	 */
-	bin_h = min(IMX219_PIXEL_ARRAY_WIDTH / fmt->format.width, 2U);
-	bin_v = min(IMX219_PIXEL_ARRAY_HEIGHT / fmt->format.height, 2U);
+	bin_h = min(IMX219_ACTIVE_AREA_WIDTH / fmt->format.width, 2U);
+	bin_v = min(IMX219_ACTIVE_AREA_HEIGHT / fmt->format.height, 2U);
 
 	crop = v4l2_subdev_state_get_crop(state, IMX219_PAD_IMAGE);
 	crop->width = fmt->format.width * bin_h;
@@ -1197,10 +1197,10 @@ static int imx219_get_selection(struct v4l2_subdev *sd,
 	case V4L2_SEL_TGT_CROP_BOUNDS:
 		switch (sel->pad) {
 		case IMX219_PAD_IMAGE:
-			sel->r.top = IMX219_PIXEL_ARRAY_TOP;
-			sel->r.left = IMX219_PIXEL_ARRAY_LEFT;
-			sel->r.width = IMX219_PIXEL_ARRAY_WIDTH;
-			sel->r.height = IMX219_PIXEL_ARRAY_HEIGHT;
+			sel->r.top = IMX219_ACTIVE_AREA_TOP;
+			sel->r.left = IMX219_ACTIVE_AREA_LEFT;
+			sel->r.width = IMX219_ACTIVE_AREA_WIDTH;
+			sel->r.height = IMX219_ACTIVE_AREA_HEIGHT;
 			return 0;
 
 		case IMX219_PAD_SOURCE:
