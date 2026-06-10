@@ -921,6 +921,16 @@ static int ti_csi2rx_get_vc_and_dt(struct ti_csi2rx_ctx *ctx)
 		return PTR_ERR(source_pad);
 
 	ret = v4l2_subdev_call(csi->source, pad, get_frame_desc, source_pad->index, &fd);
+
+	trace_printk("frame_desc: type=%u num_entries=%u\n", fd.type, fd.num_entries);
+	for (unsigned int k = 0; k < fd.num_entries; k++) {
+		const struct v4l2_mbus_frame_desc_entry *e = &fd.entry[k];
+
+		trace_printk("frame_desc entry[%u]: flags=0x%x stream=%u pixelcode=0x%x length=%u vc=%u dt=0x%x\n",
+			     k, e->flags, e->stream, e->pixelcode, e->length,
+			     e->bus.csi2.vc, e->bus.csi2.dt);
+	}
+
 	if (ret) {
 		if (ret == -ENOIOCTLCMD) {
 			ctx->vc = 0;
