@@ -245,6 +245,21 @@ static const struct reg_sequence ov2312_1600x1300_60fps_AB[] = {
 	{0x382b, 0x3a},
 	{0x3670, 0x68},
 
+	{0x3208, 0x00},/* Group A (IR Dominant VC0) */
+	{OV2312_AEC_PK_EXPO_HI, (OV2312_IR_EXPOSURE >> 8) & 0xff},
+	{OV2312_AEC_PK_EXPO_LO, OV2312_IR_EXPOSURE & 0xff},
+	{OV2312_AEC_PK_AGAIN_HI, 0x01},
+	{OV2312_AEC_PK_AGAIN_LO, 0x00},
+	{OV2312_AEC_PK_DGAIN_HI, 0x01},
+	{OV2312_AEC_PK_DGAIN_LO, 0x00},
+	{0x3920, 0xff},/* IR Strobe duty cycle */
+	{0x3927, (OV2312_IR_STROBE >> 8) & 0xff},
+	{0x3928, OV2312_IR_STROBE & 0xff},
+	{0x3929, (OV2312_IR_STROBE_START >> 8) & 0xff},
+	{0x392a, OV2312_IR_STROBE_START & 0xff},
+	{0x4813, 0x01},/* VC=1. This register takes effect from next frame */
+	{0x3208, 0x10},
+
 	/* Start : Embedded data settings */
 	{0x3016, 0xF1}, /* CLK: 0xF1 before programming ED according to ED example*/
 	{0x0100, 0x01}, /* MODE_SELECT: 0x01 to go into streaming mode*/
@@ -274,19 +289,4 @@ static const struct reg_sequence ov2312_1600x1300_60fps_AB[] = {
 	{0x320A, 0x01},/* Stay in Group B for 1 Frame */
 	{0x320B, 0x00},
 	{0x320C, 0x00},
-	{0x3208, 0x01},/* Group A (IR Dominant VC0) */
-	{OV2312_AEC_PK_EXPO_HI, (OV2312_IR_EXPOSURE >> 8) & 0xff},
-	{OV2312_AEC_PK_EXPO_LO, OV2312_IR_EXPOSURE & 0xff},
-	{OV2312_AEC_PK_AGAIN_HI, 0x01},
-	{OV2312_AEC_PK_AGAIN_LO, 0x00},
-	{OV2312_AEC_PK_DGAIN_HI, 0x01},
-	{OV2312_AEC_PK_DGAIN_LO, 0x00},
-	{0x3920, 0xff},/* IR Strobe duty cycle */
-	{0x3927, (OV2312_IR_STROBE >> 8) & 0xff},
-	{0x3928, OV2312_IR_STROBE & 0xff},
-	{0x3929, (OV2312_IR_STROBE_START >> 8) & 0xff},
-	{0x392a, OV2312_IR_STROBE_START & 0xff},
-	{0x4813, 0x01},/* VC=1. This register takes effect from next frame */
-	{0x3208, 0x11},
-
 };
