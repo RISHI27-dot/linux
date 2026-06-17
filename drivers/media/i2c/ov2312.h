@@ -263,7 +263,7 @@ static const struct reg_sequence ov2312_1600x1300_60fps_AB[] = {
 	/* Start : Embedded data settings */
 	{0x3016, 0xF1}, /* CLK: 0xF1 before programming ED according to ED example*/
 	{0x0100, 0x01}, /* MODE_SELECT: 0x01 to go into streaming mode*/
-	{0x4814, 0x6B}, /* DT: 0x6B according to ED example, ED will be sent with a DT = 0x2B (RAW10)*/
+	{0x4814, 0x2B}, /* DT: 0x2B according to ED example, ED will be sent with a DT = 0x12 (MIPI DT for embedded data)*/
 	{0x3218, 0x32}, /* ED line ctrl: 0x32 according to ED example*/
 	{0x3216, 0x01}, /* CLK: 0xF1 to start programming ED*/
 	{0x3208, 0x04}, /* Group Access: Start ED recording i.e set Group = 4 r[7:4] = 0*/
@@ -279,7 +279,7 @@ static const struct reg_sequence ov2312_1600x1300_60fps_AB[] = {
 
 	{0x3208, 0x14}, /* Group Access: End ED recording i.e set Group = 4 r[7:4] = 1*/
 	{0x3662, 0x65}, /* 0x65 to set to RAW10 according to ED example*/
-	{0x366F, 0x1A}, /* 0x1A to set to RAW10 according to ED example, 0x366F[6] = 0 to print msb of ED*/
+	{0x366F, 0x5A}, /* 0x5A to set to RAW10 according to ED example, 0x366F[6] = 1 to print lsb of ED*/
 	{0x3674, 0x11}, /* 0x11 to set to RAW10 according to ED example*/
 	{0x3016, 0xF0}, /* CLK: 0xF0 before programming ED according to ED example*/
 	/* End : Embedded data settings */
