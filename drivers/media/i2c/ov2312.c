@@ -21,6 +21,12 @@
 
 #include "ov2312.h"
 
+enum ov2312_pad_ids {
+	OV2312_PAD_SOURCE = 0,
+	OV2312_PAD_IMAGE,
+	OV2312_NUM_PADS,
+};
+
 struct ov2312 {
 	struct device *dev;
 
@@ -32,7 +38,7 @@ struct ov2312 {
 	struct gpio_desc *reset_gpio;
 
 	struct v4l2_subdev sd;
-	struct media_pad pad;
+	struct media_pad pads[OV2312_NUM_PADS];
 	struct v4l2_mbus_framefmt format;
 
 	struct v4l2_ctrl_handler ctrls;
@@ -105,7 +111,14 @@ static void ov2312_init_formats(struct v4l2_subdev_state *state)
 	int i;
 
 	for (i = 0; i < 2; ++i) {
-		format = v4l2_subdev_state_get_format(state, 0, i);
+		format = v4l2_subdev_state_get_format(state, OV2312_PAD_IMAGE, i);
+		format->code = ov2312_mbus_formats[0];
+		format->width = ov2312_framesizes[0].width;
+		format->height = ov2312_framesizes[0].height;
+		format->field = V4L2_FIELD_NONE;
+		format->colorspace = V4L2_COLORSPACE_DEFAULT;
+
+		format = v4l2_subdev_state_get_format(state, OV2312_PAD_SOURCE, i);
 		format->code = ov2312_mbus_formats[0];
 		format->width = ov2312_framesizes[0].width;
 		format->height = ov2312_framesizes[0].height;
@@ -124,8 +137,8 @@ static int ov2312_set_fmt(struct v4l2_subdev *sd,
 	u32 code;
 	int ret = 0;
 
-	if (fmt->pad != 0)
-		return -EINVAL;
+	if (fmt->pad != OV2312_PAD_SOURCE)
+		return v4l2_subdev_get_fmt(sd, state, fmt);
 
 	if (fmt->stream != 0)
 		return -EINVAL;
@@ -166,12 +179,16 @@ static int _ov2312_set_routing(struct v4l2_subdev *sd,
 {
 	struct v4l2_subdev_route routes[] = {
 		{
-			.source_pad = 0,
+			.sink_pad = OV2312_PAD_IMAGE,
+			.sink_stream = 0,
+			.source_pad = OV2312_PAD_SOURCE,
 			.source_stream = 0,
 			.flags = V4L2_SUBDEV_ROUTE_FL_ACTIVE,
 		},
 		{
-			.source_pad = 0,
+			.sink_pad = OV2312_PAD_IMAGE,
+			.sink_stream = 1,
+			.source_pad = OV2312_PAD_SOURCE,
 			.source_stream = 1,
 			.flags = V4L2_SUBDEV_ROUTE_FL_ACTIVE,
 		},
@@ -202,12 +219,12 @@ static int ov2312_get_frame_desc(struct v4l2_subdev *sd, unsigned int pad,
 	int ret = 0;
 	unsigned int i;
 
-	if (pad != 0)
+	if (pad != OV2312_PAD_SOURCE)
 		return -EINVAL;
 
 	state = v4l2_subdev_lock_and_get_active_state(sd);
 
-	fmt = v4l2_subdev_state_get_format(state, 0, 0);
+	fmt = v4l2_subdev_state_get_format(state, OV2312_PAD_SOURCE, 0);
 	if (!fmt) {
 		ret = -EPIPE;
 		goto out;
@@ -272,6 +289,15 @@ static int ov2312_enum_mbus_code(struct v4l2_subdev *sd,
 				 struct v4l2_subdev_state *state,
 				 struct v4l2_subdev_mbus_code_enum *code)
 {
+	if (code->pad == OV2312_PAD_IMAGE) {
+		/* The internal image pad is hardwired to the native format. */
+		if (code->index > 0)
+			return -EINVAL;
+
+		code->code = ov2312_mbus_formats[0];
+		return 0;
+	}
+
 	if (code->index >= ARRAY_SIZE(ov2312_mbus_formats))
 		return -EINVAL;
 
@@ -285,6 +311,17 @@ static int ov2312_enum_frame_sizes(struct v4l2_subdev *sd,
 				   struct v4l2_subdev_frame_size_enum *fse)
 {
 	unsigned int i;
+
+	if (fse->pad == OV2312_PAD_IMAGE) {
+		if (fse->code != ov2312_mbus_formats[0] || fse->index > 0)
+			return -EINVAL;
+
+		fse->min_width = ov2312_framesizes[0].width;
+		fse->max_width = fse->min_width;
+		fse->min_height = ov2312_framesizes[0].height;
+		fse->max_height = fse->min_height;
+		return 0;
+	}
 
 	for (i = 0; i < ARRAY_SIZE(ov2312_mbus_formats); ++i) {
 		if (ov2312_mbus_formats[i] == fse->code)
@@ -665,10 +702,18 @@ static int ov2312_probe(struct i2c_client *client)
 	sd->flags |= V4L2_SUBDEV_FL_HAS_DEVNODE |
 		     V4L2_SUBDEV_FL_HAS_EVENTS | V4L2_SUBDEV_FL_STREAMS;
 
-	/* Initialize the media entity. */
-	ov2312->pad.flags = MEDIA_PAD_FL_SOURCE;
+	/* Initialize the media entity.
+	 * To preserve backward compatibility with userspace that used the
+	 * sensor before the introduction of the internal image pad, the
+	 * external source pad is numbered 0 and the internal image pad
+	 * numbered 1.
+	 */
+	ov2312->pads[OV2312_PAD_SOURCE].flags = MEDIA_PAD_FL_SOURCE;
+	ov2312->pads[OV2312_PAD_IMAGE].flags = MEDIA_PAD_FL_SINK |
+					       MEDIA_PAD_FL_INTERNAL;
 	sd->entity.function = MEDIA_ENT_F_CAM_SENSOR;
-	ret = media_entity_pads_init(&sd->entity, 1, &ov2312->pad);
+	ret = media_entity_pads_init(&sd->entity, ARRAY_SIZE(ov2312->pads),
+				     ov2312->pads);
 	if (ret < 0)
 		return dev_err_probe(ov2312->dev, ret,
 				     "media entity init failed\n");
