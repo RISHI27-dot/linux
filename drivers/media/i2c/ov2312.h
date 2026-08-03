@@ -15,6 +15,9 @@
 #define OV2312_OUT_HEIGHT	1300
 #define OV2312_VTS		0x0588
 
+/* Embedded metadata stream height */
+#define OV2312_EMBEDDED_DATA_HEIGHT	2U
+
 #define OV2312_SYS_MODE_SEL	0x0100
 #define OV2312_SC_CHIP_ID_HI	0x300a
 #define OV2312_SC_CHIP_ID_LO	0x300b
