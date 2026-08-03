@@ -16,6 +16,7 @@
 #include <linux/types.h>
 #include <linux/v4l2-mediabus.h>
 #include <linux/videodev2.h>
+#include <media/mipi-csi2.h>
 #include <media/v4l2-subdev.h>
 #include <media/v4l2-ctrls.h>
 
@@ -24,7 +25,13 @@
 enum ov2312_pad_ids {
 	OV2312_PAD_SOURCE = 0,
 	OV2312_PAD_IMAGE,
+	OV2312_PAD_EDATA,
 	OV2312_NUM_PADS,
+};
+
+enum ov2312_stream_ids {
+	OV2312_STREAM_IMAGE,
+	OV2312_STREAM_EDATA,
 };
 
 struct ov2312 {
@@ -108,23 +115,36 @@ static int ov2312_write_table(struct ov2312 *ov2312,
 static void ov2312_init_formats(struct v4l2_subdev_state *state)
 {
 	struct v4l2_mbus_framefmt *format;
-	int i;
 
-	for (i = 0; i < 2; ++i) {
-		format = v4l2_subdev_state_get_format(state, OV2312_PAD_IMAGE, i);
-		format->code = ov2312_mbus_formats[0];
-		format->width = ov2312_framesizes[0].width;
-		format->height = ov2312_framesizes[0].height;
-		format->field = V4L2_FIELD_NONE;
-		format->colorspace = V4L2_COLORSPACE_DEFAULT;
+	format = v4l2_subdev_state_get_format(state, OV2312_PAD_IMAGE, 0);
+	format->code = ov2312_mbus_formats[0];
+	format->width = ov2312_framesizes[0].width;
+	format->height = ov2312_framesizes[0].height;
+	format->field = V4L2_FIELD_NONE;
+	format->colorspace = V4L2_COLORSPACE_DEFAULT;
 
-		format = v4l2_subdev_state_get_format(state, OV2312_PAD_SOURCE, i);
-		format->code = ov2312_mbus_formats[0];
-		format->width = ov2312_framesizes[0].width;
-		format->height = ov2312_framesizes[0].height;
-		format->field = V4L2_FIELD_NONE;
-		format->colorspace = V4L2_COLORSPACE_DEFAULT;
-	}
+	format = v4l2_subdev_state_get_format(state, OV2312_PAD_SOURCE,
+					      OV2312_STREAM_IMAGE);
+	format->code = ov2312_mbus_formats[0];
+	format->width = ov2312_framesizes[0].width;
+	format->height = ov2312_framesizes[0].height;
+	format->field = V4L2_FIELD_NONE;
+	format->colorspace = V4L2_COLORSPACE_DEFAULT;
+
+	format = v4l2_subdev_state_get_format(state, OV2312_PAD_EDATA, 0);
+	format->code = MEDIA_BUS_FMT_META_10;
+	format->width = ov2312_framesizes[0].width;
+	format->height = OV2312_EMBEDDED_DATA_HEIGHT;
+	format->field = V4L2_FIELD_NONE;
+	format->colorspace = V4L2_COLORSPACE_DEFAULT;
+
+	format = v4l2_subdev_state_get_format(state, OV2312_PAD_SOURCE,
+					      OV2312_STREAM_EDATA);
+	format->code = MEDIA_BUS_FMT_META_10;
+	format->width = ov2312_framesizes[0].width;
+	format->height = OV2312_EMBEDDED_DATA_HEIGHT;
+	format->field = V4L2_FIELD_NONE;
+	format->colorspace = V4L2_COLORSPACE_DEFAULT;
 }
 
 static int ov2312_set_fmt(struct v4l2_subdev *sd,
@@ -132,16 +152,17 @@ static int ov2312_set_fmt(struct v4l2_subdev *sd,
 			  struct v4l2_subdev_format *fmt)
 {
 	struct ov2312 *ov2312 = to_ov2312(sd);
-	struct v4l2_mbus_framefmt *format;
+	struct v4l2_mbus_framefmt *format, *ed_format;
 	const struct v4l2_area *fsize;
 	u32 code;
 	int ret = 0;
 
-	if (fmt->pad != OV2312_PAD_SOURCE)
+	/*
+	 * The format can be set on the source pad for image streams only.
+	 * The embedded data stream format is not configurable.
+	 */
+	if (fmt->pad != OV2312_PAD_SOURCE || fmt->stream == OV2312_STREAM_EDATA)
 		return v4l2_subdev_get_fmt(sd, state, fmt);
-
-	if (fmt->stream != 0)
-		return -EINVAL;
 
 	/* Sensor only supports a single format. */
 	code = ov2312_mbus_formats[0];
@@ -168,6 +189,16 @@ static int ov2312_set_fmt(struct v4l2_subdev *sd,
 
 	fmt->format = *format;
 
+	/*
+	 * Update the embedded data format to follow the image stream width.
+	 */
+	ed_format = v4l2_subdev_state_get_format(state, OV2312_PAD_EDATA, 0);
+	ed_format->width = fsize->width;
+
+	format = v4l2_subdev_state_get_format(state, OV2312_PAD_SOURCE,
+					      OV2312_STREAM_EDATA);
+	format->width = fsize->width;
+
 done:
 	v4l2_subdev_unlock_state(state);
 
@@ -182,16 +213,16 @@ static int _ov2312_set_routing(struct v4l2_subdev *sd,
 			.sink_pad = OV2312_PAD_IMAGE,
 			.sink_stream = 0,
 			.source_pad = OV2312_PAD_SOURCE,
-			.source_stream = 0,
+			.source_stream = OV2312_STREAM_IMAGE,
 			.flags = V4L2_SUBDEV_ROUTE_FL_ACTIVE |
 				 V4L2_SUBDEV_ROUTE_FL_IMMUTABLE |
 				 V4L2_SUBDEV_ROUTE_FL_STATIC,
 		},
 		{
-			.sink_pad = OV2312_PAD_IMAGE,
-			.sink_stream = 1,
+			.sink_pad = OV2312_PAD_EDATA,
+			.sink_stream = 0,
 			.source_pad = OV2312_PAD_SOURCE,
-			.source_stream = 1,
+			.source_stream = OV2312_STREAM_EDATA,
 			.flags = V4L2_SUBDEV_ROUTE_FL_ACTIVE |
 				 V4L2_SUBDEV_ROUTE_FL_IMMUTABLE |
 				 V4L2_SUBDEV_ROUTE_FL_STATIC,
@@ -219,41 +250,50 @@ static int ov2312_get_frame_desc(struct v4l2_subdev *sd, unsigned int pad,
 				 struct v4l2_mbus_frame_desc *fd)
 {
 	struct v4l2_subdev_state *state;
-	struct v4l2_mbus_framefmt *fmt;
+	struct v4l2_mbus_framefmt *img_fmt, *ed_fmt;
 	u32 bpp;
 	int ret = 0;
-	unsigned int i;
 
 	if (pad != OV2312_PAD_SOURCE)
 		return -EINVAL;
 
 	state = v4l2_subdev_lock_and_get_active_state(sd);
 
-	fmt = v4l2_subdev_state_get_format(state, OV2312_PAD_SOURCE, 0);
-	if (!fmt) {
+	img_fmt = v4l2_subdev_state_get_format(state, OV2312_PAD_SOURCE,
+					       OV2312_STREAM_IMAGE);
+	if (!img_fmt) {
 		ret = -EPIPE;
 		goto out;
 	}
+
+	ed_fmt = v4l2_subdev_state_get_format(state, OV2312_PAD_SOURCE,
+					      OV2312_STREAM_EDATA);
 
 	memset(fd, 0, sizeof(*fd));
 
 	fd->type = V4L2_MBUS_FRAME_DESC_TYPE_CSI2;
 
-	/* pixel stream - 2 virtual channels */
-
 	bpp = 10;
 
-	for (i = 0; i < 2; ++i) {
-		fd->entry[fd->num_entries].stream = i;
+	/* combined RGB+IR pixel stream - 60fps alternating frames at VC0 */
+	fd->entry[fd->num_entries].stream = OV2312_STREAM_IMAGE;
+	fd->entry[fd->num_entries].flags = V4L2_MBUS_FRAME_DESC_FL_LEN_MAX;
+	fd->entry[fd->num_entries].length =
+		img_fmt->width * img_fmt->height * bpp / 8;
+	fd->entry[fd->num_entries].pixelcode = img_fmt->code;
+	fd->entry[fd->num_entries].bus.csi2.vc = 0;
+	fd->entry[fd->num_entries].bus.csi2.dt = 0x2b; /* RAW10 */
+	fd->num_entries++;
 
-		fd->entry[fd->num_entries].flags = V4L2_MBUS_FRAME_DESC_FL_LEN_MAX;
-		fd->entry[fd->num_entries].length = fmt->width * fmt->height * bpp / 8;
-		fd->entry[fd->num_entries].pixelcode = fmt->code;
-		fd->entry[fd->num_entries].bus.csi2.vc = i;
-		fd->entry[fd->num_entries].bus.csi2.dt = 0x2b; /* RAW10 */
-
-		fd->num_entries++;
-	}
+	/* embedded data stream - VC0 */
+	fd->entry[fd->num_entries].stream = OV2312_STREAM_EDATA;
+	fd->entry[fd->num_entries].flags = V4L2_MBUS_FRAME_DESC_FL_LEN_MAX;
+	fd->entry[fd->num_entries].length =
+		ed_fmt->width * OV2312_EMBEDDED_DATA_HEIGHT;
+	fd->entry[fd->num_entries].pixelcode = ed_fmt->code;
+	fd->entry[fd->num_entries].bus.csi2.vc = 0;
+	fd->entry[fd->num_entries].bus.csi2.dt = MIPI_CSI2_DT_EMBEDDED_8B;
+	fd->num_entries++;
 
 out:
 	v4l2_subdev_unlock_state(state);
@@ -275,12 +315,32 @@ static int ov2312_enum_mbus_code(struct v4l2_subdev *sd,
 				 struct v4l2_subdev_state *state,
 				 struct v4l2_subdev_mbus_code_enum *code)
 {
-	if (code->pad == OV2312_PAD_IMAGE) {
+	switch (code->pad) {
+	case OV2312_PAD_IMAGE:
 		/* The internal image pad is hardwired to the native format. */
 		if (code->index > 0)
 			return -EINVAL;
 
 		code->code = ov2312_mbus_formats[0];
+		return 0;
+
+	case OV2312_PAD_EDATA:
+		if (code->index > 0)
+			return -EINVAL;
+
+		code->code = MEDIA_BUS_FMT_META_10;
+		return 0;
+
+	case OV2312_PAD_SOURCE:
+	default:
+		break;
+	}
+
+	if (code->stream == OV2312_STREAM_EDATA) {
+		if (code->index > 0)
+			return -EINVAL;
+
+		code->code = MEDIA_BUS_FMT_META_10;
 		return 0;
 	}
 
@@ -298,13 +358,39 @@ static int ov2312_enum_frame_sizes(struct v4l2_subdev *sd,
 {
 	unsigned int i;
 
-	if (fse->pad == OV2312_PAD_IMAGE) {
+	switch (fse->pad) {
+	case OV2312_PAD_IMAGE:
 		if (fse->code != ov2312_mbus_formats[0] || fse->index > 0)
 			return -EINVAL;
 
 		fse->min_width = ov2312_framesizes[0].width;
 		fse->max_width = fse->min_width;
 		fse->min_height = ov2312_framesizes[0].height;
+		fse->max_height = fse->min_height;
+		return 0;
+
+	case OV2312_PAD_EDATA:
+		if (fse->code != MEDIA_BUS_FMT_META_10 || fse->index > 0)
+			return -EINVAL;
+
+		fse->min_width = ov2312_framesizes[0].width;
+		fse->max_width = fse->min_width;
+		fse->min_height = OV2312_EMBEDDED_DATA_HEIGHT;
+		fse->max_height = fse->min_height;
+		return 0;
+
+	case OV2312_PAD_SOURCE:
+	default:
+		break;
+	}
+
+	if (fse->stream == OV2312_STREAM_EDATA) {
+		if (fse->code != MEDIA_BUS_FMT_META_10 || fse->index > 0)
+			return -EINVAL;
+
+		fse->min_width = ov2312_framesizes[0].width;
+		fse->max_width = fse->min_width;
+		fse->min_height = OV2312_EMBEDDED_DATA_HEIGHT;
 		fse->max_height = fse->min_height;
 		return 0;
 	}
@@ -335,7 +421,7 @@ static int ov2312_get_frame_interval(struct v4l2_subdev *sd,
 	struct ov2312 *ov2312 = to_ov2312(sd);
 
 	fi->interval.numerator = 1;
-	fi->interval.denominator = ov2312->fps / 2;
+	fi->interval.denominator = ov2312->fps;
 
 	return 0;
 }
@@ -556,6 +642,13 @@ static int ov2312_sd_enable_streams(struct v4l2_subdev *sd,
 	struct ov2312 *ov2312 = to_ov2312(sd);
 	int ret;
 
+	/*
+	 * The image stream controls sensor streaming, as embedded data isn't
+	 * controllable independently.
+	 */
+	if (!(streams_mask & BIT(OV2312_STREAM_IMAGE)))
+		return 0;
+
 	guard(mutex)(&ov2312->lock);
 
 	if (!ov2312->enable_count) {
@@ -586,6 +679,13 @@ static int ov2312_sd_disable_streams(struct v4l2_subdev *sd,
 {
 	struct ov2312 *ov2312 = to_ov2312(sd);
 	int ret;
+
+	/*
+	 * The image stream controls sensor streaming, as embedded data isn't
+	 * controllable independently.
+	 */
+	if (!(streams_mask & BIT(OV2312_STREAM_IMAGE)))
+		return 0;
 
 	mutex_lock(&ov2312->lock);
 
@@ -687,15 +787,17 @@ static int ov2312_probe(struct i2c_client *client)
 	sd->flags |= V4L2_SUBDEV_FL_HAS_DEVNODE |
 		     V4L2_SUBDEV_FL_HAS_EVENTS | V4L2_SUBDEV_FL_STREAMS;
 
-	/* Initialize the media entity.
-	 * To preserve backward compatibility with userspace that used the
-	 * sensor before the introduction of the internal image pad, the
-	 * external source pad is numbered 0 and the internal image pad
-	 * numbered 1.
+	/*
+	 * Initialize the media entity. To preserve backward compatibility with
+	 * userspace that used the sensor before the introduction of the internal
+	 * pads, the external source pad is numbered 0 and the internal image
+	 * and embedded data pads numbered 1 and 2 respectively.
 	 */
 	ov2312->pads[OV2312_PAD_SOURCE].flags = MEDIA_PAD_FL_SOURCE;
 	ov2312->pads[OV2312_PAD_IMAGE].flags = MEDIA_PAD_FL_SINK |
 					       MEDIA_PAD_FL_INTERNAL;
+	ov2312->pads[OV2312_PAD_EDATA].flags = MEDIA_PAD_FL_SINK |
+						MEDIA_PAD_FL_INTERNAL;
 	sd->entity.function = MEDIA_ENT_F_CAM_SENSOR;
 	ret = media_entity_pads_init(&sd->entity, ARRAY_SIZE(ov2312->pads),
 				     ov2312->pads);
