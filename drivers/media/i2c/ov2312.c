@@ -183,18 +183,23 @@ static int _ov2312_set_routing(struct v4l2_subdev *sd,
 			.sink_stream = 0,
 			.source_pad = OV2312_PAD_SOURCE,
 			.source_stream = 0,
-			.flags = V4L2_SUBDEV_ROUTE_FL_ACTIVE,
+			.flags = V4L2_SUBDEV_ROUTE_FL_ACTIVE |
+				 V4L2_SUBDEV_ROUTE_FL_IMMUTABLE |
+				 V4L2_SUBDEV_ROUTE_FL_STATIC,
 		},
 		{
 			.sink_pad = OV2312_PAD_IMAGE,
 			.sink_stream = 1,
 			.source_pad = OV2312_PAD_SOURCE,
 			.source_stream = 1,
-			.flags = V4L2_SUBDEV_ROUTE_FL_ACTIVE,
+			.flags = V4L2_SUBDEV_ROUTE_FL_ACTIVE |
+				 V4L2_SUBDEV_ROUTE_FL_IMMUTABLE |
+				 V4L2_SUBDEV_ROUTE_FL_STATIC,
 		},
 	};
 
 	struct v4l2_subdev_krouting routing = {
+		.len_routes = ARRAY_SIZE(routes),
 		.num_routes = ARRAY_SIZE(routes),
 		.routes = routes,
 	};
@@ -251,25 +256,6 @@ static int ov2312_get_frame_desc(struct v4l2_subdev *sd, unsigned int pad,
 	}
 
 out:
-	v4l2_subdev_unlock_state(state);
-
-	return ret;
-}
-
-static int ov2312_set_routing(struct v4l2_subdev *sd,
-			      struct v4l2_subdev_state *state,
-			      enum v4l2_subdev_format_whence which,
-			      struct v4l2_subdev_krouting *routing)
-{
-	int ret;
-
-	if (routing->num_routes == 0 || routing->num_routes > 2)
-		return -EINVAL;
-
-	v4l2_subdev_lock_state(state);
-
-	ret = _ov2312_set_routing(sd, state);
-
 	v4l2_subdev_unlock_state(state);
 
 	return ret;
@@ -625,7 +611,6 @@ static const struct v4l2_subdev_pad_ops ov2312_subdev_pad_ops = {
 	.set_fmt = ov2312_set_fmt,
 	.enum_mbus_code = ov2312_enum_mbus_code,
 	.enum_frame_size = ov2312_enum_frame_sizes,
-	.set_routing = ov2312_set_routing,
 	.get_frame_desc	= ov2312_get_frame_desc,
 	.get_frame_interval = ov2312_get_frame_interval,
 	.set_frame_interval = ov2312_set_frame_interval,
