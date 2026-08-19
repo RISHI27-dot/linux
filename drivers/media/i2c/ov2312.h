@@ -257,7 +257,7 @@ static const struct reg_sequence ov2312_1600x1300_60fps_AB[] = {
 	{0x3928, OV2312_IR_STROBE & 0xff},
 	{0x3929, (OV2312_IR_STROBE_START >> 8) & 0xff},
 	{0x392a, OV2312_IR_STROBE_START & 0xff},
-	{0x4813, 0x01},/* VC=1. This register takes effect from next frame */
+	{0x4813, 0x00},/* VC=0. This register takes effect from next frame */
 	{0x3208, 0x10},
 
 	/* Start : Embedded data settings */
