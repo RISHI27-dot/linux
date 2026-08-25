@@ -132,7 +132,7 @@ static void ov2312_init_formats(struct v4l2_subdev_state *state)
 	format->colorspace = V4L2_COLORSPACE_DEFAULT;
 
 	format = v4l2_subdev_state_get_format(state, OV2312_PAD_EDATA, 0);
-	format->code = MEDIA_BUS_FMT_META_8;
+	format->code = MEDIA_BUS_FMT_META_10;
 	format->width = ov2312_framesizes[0].width;
 	format->height = OV2312_EMBEDDED_DATA_HEIGHT;
 	format->field = V4L2_FIELD_NONE;
@@ -140,7 +140,7 @@ static void ov2312_init_formats(struct v4l2_subdev_state *state)
 
 	format = v4l2_subdev_state_get_format(state, OV2312_PAD_SOURCE,
 					      OV2312_STREAM_EDATA);
-	format->code = MEDIA_BUS_FMT_META_8;
+	format->code = MEDIA_BUS_FMT_META_10;
 	format->width = ov2312_framesizes[0].width;
 	format->height = OV2312_EMBEDDED_DATA_HEIGHT;
 	format->field = V4L2_FIELD_NONE;
@@ -328,7 +328,7 @@ static int ov2312_enum_mbus_code(struct v4l2_subdev *sd,
 		if (code->index > 0)
 			return -EINVAL;
 
-		code->code = MEDIA_BUS_FMT_META_8;
+		code->code = MEDIA_BUS_FMT_META_10;
 		return 0;
 
 	case OV2312_PAD_SOURCE:
@@ -340,7 +340,7 @@ static int ov2312_enum_mbus_code(struct v4l2_subdev *sd,
 		if (code->index > 0)
 			return -EINVAL;
 
-		code->code = MEDIA_BUS_FMT_META_8;
+		code->code = MEDIA_BUS_FMT_META_10;
 		return 0;
 	}
 
@@ -370,7 +370,7 @@ static int ov2312_enum_frame_sizes(struct v4l2_subdev *sd,
 		return 0;
 
 	case OV2312_PAD_EDATA:
-		if (fse->code != MEDIA_BUS_FMT_META_8 || fse->index > 0)
+		if (fse->code != MEDIA_BUS_FMT_META_10 || fse->index > 0)
 			return -EINVAL;
 
 		fse->min_width = ov2312_framesizes[0].width;
@@ -385,7 +385,7 @@ static int ov2312_enum_frame_sizes(struct v4l2_subdev *sd,
 	}
 
 	if (fse->stream == OV2312_STREAM_EDATA) {
-		if (fse->code != MEDIA_BUS_FMT_META_8 || fse->index > 0)
+		if (fse->code != MEDIA_BUS_FMT_META_10 || fse->index > 0)
 			return -EINVAL;
 
 		fse->min_width = ov2312_framesizes[0].width;
